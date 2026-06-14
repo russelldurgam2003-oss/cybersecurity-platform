@@ -112,7 +112,7 @@ if not str_app.session_state.logged_in:
                         cursor.execute(sql, (reg_comp_id, reg_name, reg_email, reg_password))
                     conn.commit()
                     str_app.success("🎉 تم تسجيل شركتك بنجاح في قاعدة البيانات! يمكنك الآن الانتقال لتبويب تسجيل الدخول.")
-                except pymysql.integrity.IntegrityError:
+                except pymysql.err.IntegrityError:
                     str_app.error("❌ هذا البريد الإلكتروني أو المعرف الخاص بالشركة مسجل بالفعل.")
                 finally:
                     if 'conn' in locals(): conn.close()
@@ -134,7 +134,7 @@ if not str_app.session_state.logged_in:
                             cursor.execute(sql, (reg_name, reg_email, reg_password, reg_client_comp_id))
                             conn.commit()
                             str_app.success("🎉 تم تسجيل حسابك كعميل بنجاح! توجه لتبويب تسجيل الدخول الآن.")
-                except pymysql.integrity.IntegrityError:
+                except pymysql.err.IntegrityError:
                     str_app.error("❌ هذا البريد الإلكتروني مسجل مسبقاً للعميل.")
                 finally:
                     if 'conn' in locals(): conn.close()
