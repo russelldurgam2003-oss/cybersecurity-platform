@@ -4,20 +4,20 @@ import base64
 import pymysql  # مكتبة الاتصال بقاعدة بيانات MySQL
 from core_system import AIAdaptiveSecuritySystem
 
-# إعداد الصفحة واجهة عريضة
+# إعداد الصفحة
 str_app.set_page_config(page_title="منصة الأمن التكيفي الذكي", layout="wide")
 
 # --- ⚙️ دالة الاتصال بقاعدة البيانات ---
 def get_db_connection():
     """
-    بيانات الاتصال بقاعدة البيانات.
+    قم بتغيير هذه البيانات بناءً على استضافتك الأونلاين أو السيرفر المحلي.
     إذا كانت المنصة أونلاين، استبدل 'localhost' بـ IP السيرفر أو الهوست الخاص بالاستضافة.
     """
     return pymysql.connect(
-        host="localhost",       # عنوان السيرفر أو الاستضافة الأونلاين
-        user="root",            # اسم مستخدم قاعدة البيانات في phpMyAdmin
+        host="localhost",       # أو عنوان الـ IP الخاص بالاستضافة الأونلاين
+        user="root",            # اسم مستخدم قاعدة البيانات
         password="",            # كلمة مرور قاعدة البيانات
-        database="cyber_security_db", # اسم قاعدة البيانات التي أنشأتها
+        database="cyber_security_db",
         charset="utf8mb4",
         cursorclass=pymysql.cursors.DictCursor
     )
@@ -41,7 +41,7 @@ system = str_app.session_state.cyber_system
 if not str_app.session_state.logged_in:
     str_app.title("🔐 نظام تسجيل الدخول الموحد (المتصل بقاعدة البيانات)")
     
-    # التبديل بين تسجيل الدخول وإنشاء حساب جديد
+    # خيارين: إما تسجيل دخول بحساب حالي أو إنشاء حساب جديد
     auth_action = str_app.tabs(["تسجيل الدخول", "إنشاء حساب جديد (Sign Up)"])
     
     # ------------------ تبويب تسجيل الدخول ------------------
@@ -84,8 +84,8 @@ if not str_app.session_state.logged_in:
                                 str_app.rerun()
                             else:
                                 str_app.error("❌ البريد الإلكتروني أو كلمة المرور غير صحيحة.")
-                except pymysql.MySQLError as e:
-                    str_app.error(f"❌ خطأ في الاتصال بقاعدة البيانات: {e}")
+                except Exception as e:
+                    str_app.error(f"حدث خطأ في الاتصال بقاعدة البيانات: {e}")
                 finally:
                     if 'conn' in locals(): conn.close()
             else:
@@ -112,8 +112,8 @@ if not str_app.session_state.logged_in:
                         cursor.execute(sql, (reg_comp_id, reg_name, reg_email, reg_password))
                     conn.commit()
                     str_app.success("🎉 تم تسجيل شركتك بنجاح في قاعدة البيانات! يمكنك الآن الانتقال لتبويب تسجيل الدخول.")
-                except pymysql.MySQLError as e:
-                    str_app.error(f"❌ حدث خطأ في قاعدة البيانات أو أن البيانات مسجلة مسبقاً. التفاصيل: {e}")
+                except pymysql.integrity.IntegrityError:
+                    str_app.error("❌ هذا البريد الإلكتروني أو المعرف الخاص بالشركة مسجل بالفعل.")
                 finally:
                     if 'conn' in locals(): conn.close()
         
@@ -125,7 +125,7 @@ if not str_app.session_state.logged_in:
                 try:
                     conn = get_db_connection()
                     with conn.cursor() as cursor:
-                        # التحقق من وجود الشركة في قاعدة البيانات قبل ربط العميل بها
+                        # التحقق أولاً من وجود الشركة
                         cursor.execute("SELECT * FROM companies WHERE company_id=%s", (reg_client_comp_id,))
                         if not cursor.fetchone():
                             str_app.error("❌ الرقم التعريفي للشركة غير موجود! يرجى التحقق من الشركة أولاً.")
@@ -134,12 +134,12 @@ if not str_app.session_state.logged_in:
                             cursor.execute(sql, (reg_name, reg_email, reg_password, reg_client_comp_id))
                             conn.commit()
                             str_app.success("🎉 تم تسجيل حسابك كعميل بنجاح! توجه لتبويب تسجيل الدخول الآن.")
-                except pymysql.MySQLError as e:
-                    str_app.error(f"❌ حدث خطأ في قاعدة البيانات أو أن البيانات مسجلة مسبقاً. التفاصيل: {e}")
+                except pymysql.integrity.IntegrityError:
+                    str_app.error("❌ هذا البريد الإلكتروني مسجل مسبقاً للعميل.")
                 finally:
                     if 'conn' in locals(): conn.close()
 
-# --- 4. عرض لوحة التحكم والمنصة بعد تسجيل الدخول الناجح ---
+# --- 4. عرض لوحة التحكم بعد تسجيل الدخول الناجح ---
 else:
     with str_app.sidebar:
         str_app.markdown(f"### 👤 الحساب الحالي")
@@ -158,7 +158,7 @@ else:
             str_app.rerun()
 
     # -----------------------------------------------
-    # أ. واجهة الشركة (إدارة ومراقبة وتحليلات)
+    # أ. واجهة الشركة (قراءة حية للعملاء الفعليين من قاعدة البيانات)
     # -----------------------------------------------
     if str_app.session_state.user_role == "company":
         str_app.title(f"🏢 لوحة تحكم الشركة: {str_app.session_state.user_data['name']}")
@@ -168,6 +168,7 @@ else:
         with tab1:
             str_app.header("👁️ لوحة المراقبة الحية والذكاء الاصطناعي")
             if str_app.session_state.logs:
+                # (يبقى كود معالجة السجلات وعرض التشفير وفك التشفير كما هو لتتبع طلبات الشبكة الحالية)
                 last_log = str_app.session_state.logs[-1]
                 if last_log["status"] == "ATTACK":
                     str_app.error("🚨 حالة النظام الحالية: تحت الهجوم (ATTACK DETECTED)")
@@ -192,30 +193,30 @@ else:
             try:
                 conn = get_db_connection()
                 with conn.cursor() as cursor:
-                    # جلب العملاء المرتبطين بكود هذه الشركة ديناميكياً من الـ database
+                    # جلب العملاء المرتبطين بهذه الشركة فقط ديناميكياً من الـ database
                     sql = "SELECT name, email, created_at FROM clients WHERE company_id = %s"
                     cursor.execute(sql, (str_app.session_state.user_data['id'],))
                     db_clients = cursor.fetchall()
                     
                     if db_clients:
-                        str_app.dataframe(db_clients)
+                        str_app.dataframe(db_clients)  # عرض جدول العملاء الحقيقيين
                     else:
                         str_app.info("ℹ️ لا يوجد أي عملاء مسجلين برقم شركتك التعريفي حالياً.")
-            except pymysql.MySQLError as e:
-                str_app.error(f"فشل جلب بيانات العملاء من السيرفر: {e}")
+            except Exception as e:
+                str_app.error(f"فشل جلب بيانات العملاء: {e}")
             finally:
                 if 'conn' in locals(): conn.close()
 
         with tab3:
             str_app.header("📈 تحليل البيانات والمراقبة الأمنية المستمرة")
-            str_app.metric(label="معدل استقرار تشفير AES التكيفي", value="100%")
+            str_app.metric(label="معدل استقرار تشفير AES", value="100%")
 
     # -----------------------------------------------
-    # ب. واجهة العميل (إرسال البيانات واستخدام الخدمات)
+    # ب. واجهة العميل (إرسال البيانات واستخدام خدمات الشركة)
     # -----------------------------------------------
     elif str_app.session_state.user_role == "client":
         str_app.title("🛡️ منصة الأمن السيبراني التكيفي - بوابة العميل")
-        str_app.markdown(f"مرحباً بك يا **{str_app.session_state.user_data['name']}** في واجهة الخدمات المؤمنة.")
+        str_app.markdown(f"مرحباً بك يا **{str_app.session_state.user_data['name']}**")
         str_app.markdown("---")
         
         str_app.header("📥 إرسال البيانات والملفات بشكل آمن للشركة")
@@ -226,8 +227,8 @@ else:
             user_input = str_app.text_area("اكتب البيانات الحساسة المراد تشفيرها وإرسالها:", "")
             if user_input.strip(): final_data_to_send = user_input
         else:
-            uploaded_file = str_app.file_uploader("اختر ملفاً لتشفيره ونقله للشركة:", type=["txt", "png", "jpg", "jpeg"])
-            file_caption = str_app.text_input("وصف أو نص مرافق للملف (اختياري):")
+            uploaded_file = str_app.file_uploader("اختر ملفاً:", type=["txt", "png", "jpg", "jpeg"])
+            file_caption = str_app.text_input("وصف الملف (اختياري):")
             if uploaded_file is not None:
                 final_data_to_send = f"الملف المرفوع: {uploaded_file.name} | الوصف: {file_caption}"
 
@@ -237,4 +238,4 @@ else:
         if send_normal and final_data_to_send:
             result = system.process_request(final_data_to_send)
             str_app.session_state.logs.append(result)
-            str_app.success("🔒 تم تشفير بياناتك وإرسالها بنجاح إلى سيرفر الشركة ومراقبتها حية!")
+            str_app.success("🔒 تم تشفير بياناتك وإرسالها بنجاح إلى قاعدة بيانات سيرفر الشركة!")
