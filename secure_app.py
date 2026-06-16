@@ -18,7 +18,7 @@ def get_db_connection():
         host="mysql-roz.alwaysdata.net",         # 🟢 الـ Host المأخوذ من لوحة التحكم
         port=3306,                               # 🟢 البورت القياسي المفتوح دائماً أونلاين
         user="roz_admin",                        # 🔴 اسم المستخدم (المنصة تضيف اسم حسابك تلقائياً كسابقة)
-        password="باسوورد_المستخدم_الذي_اخترته",  # 🔴 الباسوورد الذي حددته للمستخدم
+        password="russell2@@3",
         database="roz_cyber_db",                 # 🔴 اسم قاعدة البيانات بعد إنشائها
         charset="utf8mb4",
         cursorclass=pymysql.cursors.DictCursor
