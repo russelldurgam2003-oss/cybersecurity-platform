@@ -8,25 +8,29 @@ from core_system import AIAdaptiveSecuritySystem
 str_app.set_page_config(page_title="منصة الأمن التكيفي الذكي", layout="wide")
 
 # --- ⚙️ دالة الاتصال بقاعدة البيانات السحابية الحقيقية (Aiven) ---
+import os
+
 def get_db_connection():
     """
-    الاتصال الآمن المشفر عَبْر SSL بسيرفر Aiven لحل مشكلة الـ Timeout أونلاين
+    الاتصال الآمن الموثق بشهادة CA لحل مشكلة الـ Timeout نهائياً
     """
+    # قراءة ملف الشهادة المرفوع بجانب الكود في جيت هاب
+    cert_path = os.path.join(os.path.dirname(__file__), "ca.pem")
+    
     connection = pymysql.connect(
-        host="mysql-15bd2f81-russelldurgam2003-5e67.a.aivencloud.com", # الهوست الخاص بك
+        host="mysql-15bd2f81-russelldurgam2003-5e67.a.aivencloud.com",
         port=24720,                                      
         user="avnadmin",                                 
-        password="AVNS_Jsi7wwlmMkkCNrDTln8", # الباسوورد الخاص بك
+        password="AVNS_Jsi7wwlmMkkCNrDTln8",
         database="defaultdb",                            
         charset="utf8mb4",
         cursorclass=pymysql.cursors.DictCursor,
-        ssl={"ssl": {}} # 🔐 تفعيل تشفير SSL الافتراضي لإجبار السيرفر على قبول الاتصال
+        ssl={"ssl_ca": cert_path} # 🔐 توثيق الاتصال بالشهادة المرفوعة
     )
     
-    # 🏗️ بناء الجداول ذاتياً داخل السيرفر السحابي فور نجاح العبور
+    # 🏗️ بناء الجداول ذاتياً فور نجاح العبور
     try:
         with connection.cursor() as cursor:
-            # إنشاء جدول الشركات
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS companies (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -38,7 +42,6 @@ def get_db_connection():
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """)
             
-            # إنشاء جدول العملاء
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS clients (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -52,7 +55,7 @@ def get_db_connection():
             """)
         connection.commit()
     except Exception as e:
-        pass # يتخطى الأمر إذا كانت الجداول مبنية مسبقاً
+        pass
         
     return connection
 # تهيئة متغيرات الجلسة والنظام الأمني
