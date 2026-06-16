@@ -12,20 +12,16 @@ import os
 
 def get_db_connection():
     """
-    الاتصال الآمن الموثق بشهادة CA لحل مشكلة الـ Timeout نهائياً
+    الاتصال بقاعدة البيانات السحابية الجديدة عبر البورت العالمي المفتوح 3306
     """
-    # قراءة ملف الشهادة المرفوع بجانب الكود في جيت هاب
-    cert_path = os.path.join(os.path.dirname(__file__), "ca.pem")
-    
-    connection = pymysql.connect(
-        host="mysql-15bd2f81-russelldurgam2003-5e67.a.aivencloud.com",
-        port=24720,                                      
-        user="avnadmin",                                 
-        password="AVNS_Jsi7wwlmMkkCNrDTln8",
-        database="defaultdb",                            
+    return pymysql.connect(
+        host="mysql-roz.alwaysdata.net",         # 🟢 الـ Host المأخوذ من لوحة التحكم
+        port=3306,                               # 🟢 البورت القياسي المفتوح دائماً أونلاين
+        user="roz_admin",                        # 🔴 اسم المستخدم (المنصة تضيف اسم حسابك تلقائياً كسابقة)
+        password="باسوورد_المستخدم_الذي_اخترته",  # 🔴 الباسوورد الذي حددته للمستخدم
+        database="roz_cyber_db",                 # 🔴 اسم قاعدة البيانات بعد إنشائها
         charset="utf8mb4",
-        cursorclass=pymysql.cursors.DictCursor,
-        ssl={"ssl_ca": cert_path} # 🔐 توثيق الاتصال بالشهادة المرفوعة
+        cursorclass=pymysql.cursors.DictCursor
     )
     
     # 🏗️ بناء الجداول ذاتياً فور نجاح العبور
