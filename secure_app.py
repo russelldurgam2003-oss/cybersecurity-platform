@@ -21,6 +21,39 @@ def get_db_connection():
         charset="utf8mb4",
         cursorclass=pymysql.cursors.DictCursor
     )
+    
+    # 🏗️ كود البناء التلقائي للجداول لضمان عدم ظهور خطأ (Table doesn't exist)
+    try:
+        with connection.cursor() as cursor:
+            # 1. إنشاء جدول الشركات إذا لم يكن موجوداً
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS companies (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    company_id VARCHAR(50) UNIQUE NOT NULL,
+                    name VARCHAR(100) NOT NULL,
+                    email VARCHAR(100) UNIQUE NOT NULL,
+                    password VARCHAR(255) NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            """)
+            
+            # 2. إنشاء جدول العملاء إذا لم يكن موجوداً
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS clients (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    email VARCHAR(100) UNIQUE NOT NULL,
+                    password VARCHAR(255) NOT NULL,
+                    company_id VARCHAR(50) NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (company_id) REFERENCES companies(company_id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            """)
+        connection.commit()
+    except Exception as e:
+        print(f"تنبيه أثناء فحص/إنشاء الجداول: {e}")
+        
+    return connection
 
 # تهيئة متغيرات الجلسة والنظام الأمني
 if "cyber_system" not in str_app.session_state:
